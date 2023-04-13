@@ -1,44 +1,65 @@
 #!/usr/bin/python3
 """
-Log Parsing
+0-stats module
 """
 import sys
 
+status_codes = {200: 0, 301: 0, 400: 0, 401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
+file_size = 0
+count = 0
 
-total_file_size = 0
-status = ['200', '301', '400', '401', '403', '404', '405', '500']
-obj = dict.fromkeys(status, 0)
 
-
-def printLogStat():
+def parse_line(line):
     """
-    log stats
+    pareses a line of with the format:
+    <IP Address> - [<date>] "GET /projects/260 HTTP/1.1" <status code>
+    <file size>
+    if the line is not with the above format returns None
     """
-    print("File size: {}".format(total_file_size))
-    for key, value in sorted(obj.items()):
-        if value > 0:
-            print("{}: {}".format(key, value))
+    if len(line.split()) < 2:
+        return None
+    size = 0
+    status_code = None
+
+    try:
+        size = int(line.split()[-1])
+        status_code = int(line.split()[-2])
+
+        if status_code not in status_codes:
+            status_code = None
+    finally:
+        return {
+            "status_code": status_code,
+            "file_size": size,
+        }
+
+
+def print_stats():
+    """
+    prints the stats
+    """
+    print("File size: {}".format(file_size))
+    for k, v in sorted(status_codes.items()):
+        if v > 0:
+            print("{}: {}".format(k, v))
 
 
 if __name__ == "__main__":
-    count_stat = 0
     try:
         for line in sys.stdin:
-            line = line.split()
-            count_stat += 1
-            try:
-                total_file_size += int(line[-1])
+            if count == 10:
+                print_stats()
+                count = 0
 
-                if line[-2] in status:
-                    obj[line[-2]] += 1
+            stat = parse_line(line)
+            if stat is not None:
+                if stat["status_code"] is not None:
+                    status_codes[stat["status_code"]] += 1
+                file_size += stat["file_size"]
+                count += 1
 
-            except (IndexError, ValueError):
-                pass
-
-            if count_stat % 10 == 0:
-                printLogStat()
+        if count > 0:
+            print_stats()
     except KeyboardInterrupt:
-        printLogStat()
+        print_stats()
         raise
-    else:
-        printLogStat()
