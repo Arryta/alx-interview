@@ -1,1 +1,3 @@
-# 0x04-utf8_validation
+# 0x04 UTF8 Validation
+
+Script to solve the UTF8 coding challenge
